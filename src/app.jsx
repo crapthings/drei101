@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react'
-import { HashRouter, Link, NavLink, Route, Routes, useParams } from 'react-router'
+import { lazy, Suspense, useLayoutEffect, useRef } from 'react'
+import { HashRouter, Link, NavLink, Route, Routes, useLocation, useNavigationType, useParams } from 'react-router'
 import { Button, Disclosure, DisclosureButton, DisclosurePanel, Input } from '@headlessui/react'
 import { useTranslation } from 'react-i18next'
 import { create } from 'zustand'
@@ -370,6 +370,52 @@ function Detail () {
   )
 }
 
+// Scroll positions follow history entries while new navigation starts at the top.
+function ScrollPosition () {
+  const location = useLocation()
+  const navigationType = useNavigationType()
+  const positions = useRef(new Map())
+
+  useLayoutEffect(() => {
+    const previousRestoration = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+    return () => { window.history.scrollRestoration = previousRestoration }
+  }, [])
+
+  useLayoutEffect(() => {
+    const target = navigationType === 'POP' ? positions.current.get(location.key) || 0 : 0
+    let restoring = true
+    let observer
+    const save = () => {
+      if (!restoring) positions.current.set(location.key, window.scrollY)
+    }
+    const stopRestoring = () => {
+      restoring = false
+      observer?.disconnect()
+    }
+    const restore = () => {
+      window.scrollTo({ top: target, behavior: 'instant' })
+      if (document.documentElement.scrollHeight - window.innerHeight >= target) stopRestoring()
+    }
+    observer = new ResizeObserver(restore)
+    observer.observe(document.body)
+    window.addEventListener('scroll', save, { passive: true })
+    window.addEventListener('wheel', stopRestoring, { passive: true })
+    window.addEventListener('touchstart', stopRestoring, { passive: true })
+    window.addEventListener('keydown', stopRestoring)
+    restore()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', save)
+      window.removeEventListener('wheel', stopRestoring)
+      window.removeEventListener('touchstart', stopRestoring)
+      window.removeEventListener('keydown', stopRestoring)
+    }
+  }, [location.key, navigationType])
+
+  return null
+}
+
 // Hash routing supports direct links and browser history on static hosting.
 export function App () {
   if (window.location.hash === '#/face-live') return <Suspense fallback={null}><FaceControlsLive /></Suspense>
@@ -377,5 +423,5 @@ export function App () {
   if (window.location.hash === '#/face-detector') return <Suspense fallback={null}><FaceLandmarkerFrame /></Suspense>
   if (window.location.hash === '#/capture-screen' || window.location.hash === '#/capture-camera') return <Suspense fallback={null}><MediaCaptureFrame /></Suspense>
   if (window.location.hash === '#/selection-box') return <Suspense fallback={null}><SelectionBoxFrame /></Suspense>
-  return <HashRouter><div className='min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900'><Header /><Routes><Route path='/' element={<Catalog />} /><Route path='/demo/:name' element={<Detail />} /><Route path='*' element={<Catalog />} /></Routes></div></HashRouter>
+  return <HashRouter><ScrollPosition /><div className='min-h-screen bg-slate-50 text-slate-900 selection:bg-indigo-100 selection:text-indigo-900'><Header /><Routes><Route path='/' element={<Catalog />} /><Route path='/demo/:name' element={<Detail />} /><Route path='*' element={<Catalog />} /></Routes></div></HashRouter>
 }

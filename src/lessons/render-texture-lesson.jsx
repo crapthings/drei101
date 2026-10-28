@@ -1,0 +1,10 @@
+import RenderTextureDemo, { RenderTexturePanel, useRenderTextureStore } from '@/scenes/render-texture-lesson'
+import { LessonLayout } from '@/lessons/lesson-layout'
+
+// The lesson connects an offscreen scene to a material map.
+export default function RenderTextureLesson () {
+  const { speed, resolution } = useRenderTextureStore()
+  const code = `<meshBasicMaterial toneMapped={false}>\n  <RenderTexture attach='map' width={${resolution}} height={${resolution}} samples={0}>\n    <TextureContent />\n  </RenderTexture>\n</meshBasicMaterial>\n\nfunction TextureContent () {\n  const mesh = useRef(null)\n  useFrame((state, delta) => { if (mesh.current) mesh.current.rotation.y += delta * ${speed} })\n  return <>\n    <color attach='background' args={['#c7d2fe']} />\n    <PerspectiveCamera makeDefault manual aspect={1} position={[0, 0, 5]} />\n    <directionalLight position={[3, 4, 5]} intensity={3} />\n    <mesh ref={mesh}><torusKnotGeometry args={[0.9, 0.3, 128, 24]} /><meshStandardMaterial color='#4f46e5' roughness={0.3} /></mesh>\n  </>\n}`
+  const example = `import { Canvas } from '@react-three/fiber'\nimport { PerspectiveCamera, RenderTexture } from '@react-three/drei'\n\n// Render a separate scene into a plane's square texture.\nexport default function Example () {\n  return <div style={{ height: 400 }}><Canvas camera={{ position: [0, 0, 6] }}>\n    <mesh><planeGeometry args={[3, 3]} /><meshBasicMaterial>\n      <RenderTexture attach='map' width={256} height={256}>\n        <PerspectiveCamera makeDefault manual aspect={1} position={[0, 0, 5]} />\n        <color attach='background' args={['#c7d2fe']} />\n        <mesh><torusKnotGeometry /><meshNormalMaterial /></mesh>\n      </RenderTexture>\n    </meshBasicMaterial></mesh>\n  </Canvas></div>\n}`
+  return <LessonLayout lessonKey='renderTextureLesson' Demo={RenderTextureDemo} Panel={RenderTexturePanel} minimalCode={example} liveCode={code} docs='https://drei.docs.pmnd.rs/portals/render-texture' referenceUrl='https://github.com/pmndrs/drei/blob/master/src/core/RenderTexture.tsx' />
+}

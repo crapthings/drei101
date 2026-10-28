@@ -1,0 +1,13 @@
+import { useParams } from 'react-router'
+import ContextExampleDemo, { ContextExamplePanel, useContextExampleStore } from '@/scenes/context-example-lessons'
+import { LessonLayout } from '@/lessons/lesson-layout'
+
+// The lesson explains context propagation or the exported example counter.
+export default function ContextExampleLesson () {
+  const { name } = useParams()
+  const color = useContextExampleStore((state) => state.color)
+  const bridge = name === 'useContextBridge'
+  const code = bridge ? `const ColorContext = createContext('${color}')\n\nfunction SceneCanvas () {\n  const Bridge = useContextBridge(ColorContext)\n  return <Canvas><Bridge><Box /></Bridge></Canvas>\n}\n\nfunction Box () {\n  const color = useContext(ColorContext)\n  return <mesh><boxGeometry /><meshBasicMaterial color={color} /></mesh>\n}\n\n<ColorContext.Provider value='${color}'><SceneCanvas /></ColorContext.Provider>` : `const counter = useRef()\n<Example ref={counter} font='/fonts/helvetiker_regular.typeface.json' color='#6366f1' />\ncounter.current.incr(1)\ncounter.current.decr(1)`
+  const example = bridge ? `import { createContext, useContext } from 'react'\nimport { Canvas } from '@react-three/fiber'\nimport { useContextBridge } from '@react-three/drei'\n\n${code.replace("<ColorContext.Provider value='" + color + "'><SceneCanvas /></ColorContext.Provider>", "// Provide a value outside the canvas.\nexport default function App () { return <div style={{ height: 400 }}><ColorContext.Provider value='" + color + "'><SceneCanvas /></ColorContext.Provider></div> }")}` : `import { useRef } from 'react'\nimport { Canvas } from '@react-three/fiber'\nimport { Example } from '@react-three/drei'\n\n// Control the exported counter through its imperative ref.\nexport default function App () {\n  const counter = useRef()\n  return <><button onClick={() => counter.current?.incr()}>+ 1</button><button onClick={() => counter.current?.decr()}>− 1</button><div style={{ height: 400 }}><Canvas camera={{ position: [0, 1, 5] }}><directionalLight position={[3, 5, 6]} intensity={3} /><Example ref={counter} font='/fonts/helvetiker_regular.typeface.json' color='#6366f1' /></Canvas></div></>\n}`
+  return <LessonLayout lessonKey={bridge ? 'contextBridgeLesson' : 'exampleLesson'} Demo={ContextExampleDemo} Panel={ContextExamplePanel} minimalCode={example} liveCode={code} docs={bridge ? 'https://drei.docs.pmnd.rs/misc/use-context-bridge' : 'https://github.com/pmndrs/drei/blob/master/src/core/Example.tsx'} referenceUrl={`https://github.com/pmndrs/drei/blob/master/src/core/${bridge ? 'useContextBridge' : 'Example'}.tsx`} />
+}
